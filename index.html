@@ -1,1 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Carte Vigilance Météo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+  />
+  <style>
+    #map {
+      height: 100vh;
+    }
+    .legend {
+      background: white;
+      padding: 10px;
+      font-size: 14px;
+      line-height: 18px;
+    }
+    .legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script>
+    const map = L.map("map").setView([46.8, 2.5], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    // Exemple de vigilance météo
+    const vigilanceData = {
+      "Loire": { niveau: "orange", type: "orage" },
+      "Rhône": { niveau: "rouge", type: "vent" },
+      "Puy-de-Dôme": { niveau: "jaune", type: "neige" },
+    };
+
+    // Couleurs de vigilance
+    const couleurs = {
+      vert: "#00ff00",
+      jaune: "#ffff00",
+      orange: "#ffa500",
+      rouge: "#ff0000",
+    };
+
+    // Icônes météo (liens vers des pictos en ligne ou locaux)
+    const icones = {
+      orage: "https://img.icons8.com/emoji/48/storm-emoji.png",
+      vent: "https://img.icons8.com/emoji/48/dashing-away.png",
+      neige: "https://img.icons8.com/emoji/48/snowflake.png",
+    };
+
+    // Exemple simple : petits polygones fictifs pour 3 départements
+    const geojson = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": { "nom": "Loire" },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[4, 45.3], [4.5, 45.3], [4.5, 45.7], [4, 45.7], [4, 45.3]]],
+          },
+        },
+        {
+          "type": "Feature",
+          "properties": { "nom": "Rhône" },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[4.6, 45.6], [5.1, 45.6], [5.1, 46], [4.6, 46], [4.6, 45.6]]],
+          },
+        },
+        {
+          "type": "Feature",
+          "properties": { "nom": "Puy-de-Dôme" },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[2.5, 45.5], [3, 45.5], [3, 46], [2.5, 46], [2.5, 45.5]]],
+          },
+        },
+      ],
+    };
+
+    // Ajout des départements à la carte
+    L.geoJSON(geojson, {
+      style: function (feature) {
+        const nom = feature.properties.nom;
+        const vigilance = vigilanceData[nom];
+        return {
+          color: "#333",
+          weight: 1,
+          fillOpacity: 0.6,
+          fillColor: vigilance ? couleurs[vigilance.niveau] : "#ccc",
+        };
+      },
+      onEachFeature: function (feature, layer) {
+        const nom = feature.properties.nom;
+        const vigilance = vigilanceData[nom];
+        if (vigilance) {
+          layer.bindPopup(
+            `<b>${nom}</b><br><img src="${icones[vigilance.type]}" width="32" /> ${vigilance.type} - ${vigilance.niveau}`
+          );
+        }
+      },
+    }).addTo(map);
+
+    // Légende
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML += "<b>Vigilance météo</b><br>";
+      for (const niveau in couleurs) {
+        div.innerHTML +=
+          `<i style="background:${couleurs[niveau]}"></i> ${niveau}<br>`;
+      }
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
 
