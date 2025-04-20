@@ -1,133 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <title>Carte Vigilance Météo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-  />
+  <meta charset="UTF-8">
+  <title>Carte de Vigilance Météo - Démo</title>
   <style>
-    #map {
-      height: 100vh;
-    }
-    .legend {
-      background: white;
-      padding: 10px;
-      font-size: 14px;
-      line-height: 18px;
-    }
-    .legend i {
-      width: 18px;
-      height: 18px;
-      float: left;
-      margin-right: 8px;
-      opacity: 0.7;
-    }
+    body { font-family: Arial, sans-serif; display: flex; margin: 0; padding: 0; }
+    .carte { flex: 2; padding: 20px; background-color: #f9f9f9; }
+    .controle { flex: 1; padding: 20px; background-color: #e5e5e5; max-width: 400px; }
+    .btn { margin: 5px 5px 5px 0; padding: 10px; border: none; border-radius: 4px; cursor: pointer; color: white; }
+    .vert { background-color: #47d147; }
+    .jaune { background-color: #f7e347; color: #000; }
+    .orange { background-color: #f7a347; }
+    .rouge { background-color: #f75a47; }
+    .evenement-btn { background-color: #39c; color: white; margin: 3px 3px 3px 0; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+    .form-section { margin-top: 10px; }
+    svg { width: 100%; height: auto; }
+    .departement { stroke: #000; stroke-width: 0.5; cursor: pointer; transition: fill 0.3s; }
+    .annotation { font-size: 12px; fill: black; text-anchor: middle; pointer-events: none; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script>
-    const map = L.map("map").setView([46.8, 2.5], 6);
+<div class="carte">
+  <svg id="france-map" viewBox="0 0 300 300">
+    <!-- Départements exemple -->
+    <path id="dept-01" class="departement" d="M100,100 L120,100 L120,120 L100,120 Z" fill="#47d147"></path>
+    <path id="dept-02" class="departement" d="M130,100 L150,100 L150,120 L130,120 Z" fill="#47d147"></path>
+    <path id="dept-03" class="departement" d="M100,130 L120,130 L120,150 L100,150 Z" fill="#47d147"></path>
+  </svg>
+</div>
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map);
+<div class="controle">
+  <h2>Vigilance météo</h2>
 
-    // Exemple de vigilance météo
-    const vigilanceData = {
-      "Loire": { niveau: "orange", type: "orage" },
-      "Rhône": { niveau: "rouge", type: "vent" },
-      "Puy-de-Dôme": { niveau: "jaune", type: "neige" },
-    };
+  <div class="form-section">
+    <label>Événement :</label><br>
+    <button class="evenement-btn" data-event="orage">ORAGE</button>
+    <button class="evenement-btn" data-event="pluie">PLUIE</button>
+    <button class="evenement-btn" data-event="vent">VENT</button>
+    <button class="evenement-btn" data-event="neige">NEIGE</button>
+  </div>
 
-    // Couleurs de vigilance
-    const couleurs = {
-      vert: "#00ff00",
-      jaune: "#ffff00",
-      orange: "#ffa500",
-      rouge: "#ff0000",
-    };
+  <div class="form-section">
+    <label>Couleur :</label><br>
+    <button class="btn vert" data-color="#47d147">Vert</button>
+    <button class="btn jaune" data-color="#f7e347">Jaune</button>
+    <button class="btn orange" data-color="#f7a347">Orange</button>
+    <button class="btn rouge" data-color="#f75a47">Rouge</button>
+  </div>
+</div>
 
-    // Icônes météo (liens vers des pictos en ligne ou locaux)
-    const icones = {
-      orage: "https://img.icons8.com/emoji/48/storm-emoji.png",
-      vent: "https://img.icons8.com/emoji/48/dashing-away.png",
-      neige: "https://img.icons8.com/emoji/48/snowflake.png",
-    };
+<script>
+  let couleurActuelle = "#47d147";
+  let evenementActuel = "";
 
-    // Exemple simple : petits polygones fictifs pour 3 départements
-    const geojson = {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": { "nom": "Loire" },
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [[[4, 45.3], [4.5, 45.3], [4.5, 45.7], [4, 45.7], [4, 45.3]]],
-          },
-        },
-        {
-          "type": "Feature",
-          "properties": { "nom": "Rhône" },
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [[[4.6, 45.6], [5.1, 45.6], [5.1, 46], [4.6, 46], [4.6, 45.6]]],
-          },
-        },
-        {
-          "type": "Feature",
-          "properties": { "nom": "Puy-de-Dôme" },
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [[[2.5, 45.5], [3, 45.5], [3, 46], [2.5, 46], [2.5, 45.5]]],
-          },
-        },
-      ],
-    };
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      couleurActuelle = btn.getAttribute('data-color');
+    });
+  });
 
-    // Ajout des départements à la carte
-    L.geoJSON(geojson, {
-      style: function (feature) {
-        const nom = feature.properties.nom;
-        const vigilance = vigilanceData[nom];
-        return {
-          color: "#333",
-          weight: 1,
-          fillOpacity: 0.6,
-          fillColor: vigilance ? couleurs[vigilance.niveau] : "#ccc",
-        };
-      },
-      onEachFeature: function (feature, layer) {
-        const nom = feature.properties.nom;
-        const vigilance = vigilanceData[nom];
-        if (vigilance) {
-          layer.bindPopup(
-            `<b>${nom}</b><br><img src="${icones[vigilance.type]}" width="32" /> ${vigilance.type} - ${vigilance.niveau}`
-          );
-        }
-      },
-    }).addTo(map);
+  document.querySelectorAll('.evenement-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      evenementActuel = btn.getAttribute('data-event');
+    });
+  });
 
-    // Légende
-    const legend = L.control({ position: "bottomright" });
-    legend.onAdd = function (map) {
-      const div = L.DomUtil.create("div", "legend");
-      div.innerHTML += "<b>Vigilance météo</b><br>";
-      for (const niveau in couleurs) {
-        div.innerHTML +=
-          `<i style="background:${couleurs[niveau]}"></i> ${niveau}<br>`;
+  document.querySelectorAll('.departement').forEach(dept => {
+    dept.addEventListener('click', () => {
+      dept.setAttribute('fill', couleurActuelle);
+
+      const old = document.querySelector(`#annotation-${dept.id}`);
+      if (old) old.remove();
+
+      if (evenementActuel !== "") {
+        const bbox = dept.getBBox();
+        const svg = document.getElementById("france-map");
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", bbox.x + bbox.width / 2);
+        text.setAttribute("y", bbox.y + bbox.height / 2);
+        text.setAttribute("class", "annotation");
+        text.setAttribute("id", `annotation-${dept.id}`);
+        text.textContent = evenementActuel.toUpperCase();
+        svg.appendChild(text);
       }
-      return div;
-    };
-    legend.addTo(map);
-  </script>
+    });
+  });
+</script>
+
 </body>
 </html>
-
