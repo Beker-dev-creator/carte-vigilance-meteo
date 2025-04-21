@@ -176,15 +176,13 @@ let evenementActuel = "";
 
 document.querySelectorAll('.btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    couleurActuelle = btn.getAttribute('data-color');
-    console.log("Couleur sélectionnée :", couleurActuelle);  
+    couleurActuelle = btn.getAttribute('data-color');  
   });
 });
 
 document.querySelectorAll('.evenement-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     evenementActuel = btn.getAttribute('data-event');
-    console.log("Événement sélectionné :", evenementActuel);
   });
 });
 
