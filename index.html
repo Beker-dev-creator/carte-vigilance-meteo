@@ -170,8 +170,21 @@
 </div>
 
 <script>
-  let couleurActuelle = "#47d147";
+  <script>
+let couleurActuelle = "#47d147";
 let evenementActuel = "";
+
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    couleurActuelle = btn.getAttribute('data-color');
+  });
+});
+
+document.querySelectorAll('.evenement-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    evenementActuel = btn.getAttribute('data-event');
+  });
+});
 
 document.querySelectorAll('path[data-nom]').forEach(dept => {
   dept.addEventListener('click', () => {
@@ -189,11 +202,15 @@ document.querySelectorAll('path[data-nom]').forEach(dept => {
       text.setAttribute("y", bbox.y + bbox.height / 2);
       text.setAttribute("class", "annotation");
       text.setAttribute("id", `annotation-${dept.getAttribute('data-nom')}`);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("font-size", "14");
       text.textContent = evenementActuel.toUpperCase();
       svg.appendChild(text);
     }
   });
 });
+</script>
+
 
 
 </script>
