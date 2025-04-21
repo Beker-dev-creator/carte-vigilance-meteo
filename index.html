@@ -173,23 +173,11 @@
   let couleurActuelle = "#47d147";
 let evenementActuel = "";
 
-document.querySelectorAll('.btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    couleurActuelle = btn.getAttribute('data-color');
-  });
-});
-
-document.querySelectorAll('.evenement-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    evenementActuel = btn.getAttribute('data-event');
-  });
-});
-
-document.querySelectorAll('path[id]').forEach(dept => {
+document.querySelectorAll('path[data-nom]').forEach(dept => {
   dept.addEventListener('click', () => {
     dept.setAttribute('fill', couleurActuelle);
 
-    const old = document.querySelector(`#annotation-${dept.id}`);
+    const old = document.querySelector(`#annotation-${dept.getAttribute('data-nom')}`);
     if (old) old.remove();
 
     if (evenementActuel !== "") {
@@ -200,12 +188,13 @@ document.querySelectorAll('path[id]').forEach(dept => {
       text.setAttribute("x", bbox.x + bbox.width / 2);
       text.setAttribute("y", bbox.y + bbox.height / 2);
       text.setAttribute("class", "annotation");
-      text.setAttribute("id", `annotation-${dept.id}`);
+      text.setAttribute("id", `annotation-${dept.getAttribute('data-nom')}`);
       text.textContent = evenementActuel.toUpperCase();
       svg.appendChild(text);
     }
   });
 });
+
 
 </script>
 
