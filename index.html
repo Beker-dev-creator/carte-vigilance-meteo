@@ -171,45 +171,48 @@
 
 <script>
   <script>
-let couleurActuelle = "#47d147";
-let evenementActuel = "";
+  let couleurActuelle = "#47d147";
+  let evenementActuel = "";
 
-document.querySelectorAll('.btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    couleurActuelle = btn.getAttribute('data-color');  
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      couleurActuelle = btn.getAttribute('data-color');
+    });
   });
-});
 
-document.querySelectorAll('.evenement-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    evenementActuel = btn.getAttribute('data-event');
+  document.querySelectorAll('.evenement-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      evenementActuel = btn.getAttribute('data-event');
+    });
   });
-});
 
-document.querySelectorAll('path[data-nom]').forEach(dept => {
-  dept.addEventListener('click', () => {
-    dept.setAttribute('fill', couleurActuelle);
+  document.querySelectorAll('path[data-nom]').forEach(dept => {
+    dept.addEventListener('click', () => {
+      dept.setAttribute('fill', couleurActuelle);
 
-    const old = document.querySelector(`#annotation-${dept.getAttribute('data-nom')}`);
-    if (old) old.remove();
+      const oldAnnotation = document.querySelector(`#annotation-${dept.getAttribute('data-nom')}`);
+      if (oldAnnotation) {
+        oldAnnotation.remove();
+      }
 
-    if (evenementActuel !== "") {
-      const bbox = dept.getBBox();
-      const svg = document.querySelector("svg");
+      if (evenementActuel !== "") {
+        const bbox = dept.getBBox();
+        const svg = document.querySelector("svg");
 
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", bbox.x + bbox.width / 2);
-      text.setAttribute("y", bbox.y + bbox.height / 2);
-      text.setAttribute("class", "annotation");
-      text.setAttribute("id", `annotation-${dept.getAttribute('data-nom')}`);
-      text.setAttribute("text-anchor", "middle");
-      text.setAttribute("font-size", "14");
-      text.textContent = evenementActuel.toUpperCase();
-      svg.appendChild(text);
-    }
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", bbox.x + bbox.width / 2);
+        text.setAttribute("y", bbox.y + bbox.height / 2);
+        text.setAttribute("class", "annotation");
+        text.setAttribute("id", `annotation-${dept.getAttribute('data-nom')}`);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("font-size", "14");
+        text.textContent = evenementActuel.toUpperCase();
+        svg.appendChild(text);
+      }
+    });
   });
-});
 </script>
+
 
 
 
