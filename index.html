@@ -30,21 +30,36 @@
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
         }
+        /* Masquer le fond de carte en dehors de la France */
+        .leaflet-tile-pane { 
+            filter: hue-rotate(180deg) brightness(1.5) grayscale(100%) opacity(0.3); 
+        }
     </style>
 </head>
 <body>
-    <h1>Carte de Vigilance Météorologique</h1>
+    <h1>Carte de Vigilance Météorologique - France</h1>
     <div id="map"></div>
 
     <script>
-        // Initialisation de la carte centrée sur la France
-        const map = L.map('map').setView([46.5, 2], 6);
+        // Configuration des limites de la carte (France métropolitaine)
+        const franceBounds = [[41, -5], [51, 10]];
+        const map = L.map('map', {
+            maxBounds: franceBounds,
+            maxBoundsViscosity: 1.0,
+            minZoom: 5,
+            maxZoom: 12
+        }).setView([46.5, 2], 6);
 
-        // Ajout du fond de carte OpenStreetMap
+        // Fond de carte simplifié
         L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
-            maxZoom: 20
+            bounds: franceBounds,
+            noWrap: true
         }).addTo(map);
+
+        // Empêcher le déplacement hors de la France
+        map.setMaxBounds(franceBounds);
+        map.options.worldCopyJump = false;
 
         // Configuration des couleurs et pictogrammes
         const vigilanceColors = {
@@ -66,11 +81,10 @@
         // Structure de données pour les départements
         let departementsData = {};
 
-        // Chargement du GeoJSON des départements
-        fetch('https://france-geojson.gregoiredavid.fr/repo/departements.geojson')
+        // Chargement du GeoJSON des départements français
+        fetch('https://france-geojson.gregoiredavid.fr/repo/departements-version-simplifiee.geojson')
             .then(response => response.json())
             .then(data => {
-                // Création de la couche GeoJSON
                 const departmentsLayer = L.geoJSON(data, {
                     style: function(feature) {
                         return {
@@ -83,7 +97,6 @@
                     onEachFeature: function(feature, layer) {
                         const code = feature.properties.code;
                         
-                        // Initialisation des données département
                         if (!departementsData[code]) {
                             departementsData[code] = {
                                 name: feature.properties.nom,
@@ -92,14 +105,12 @@
                             };
                         }
 
-                        // Popup d'information
                         layer.bindPopup(`
                             <b>${departementsData[code].name}</b><br>
                             Vigilance: ${departementsData[code].vigilance}<br>
                             Phénomène: ${pictograms[departementsData[code].picto]} ${departementsData[code].picto}
                         `);
 
-                        // Gestion du clic
                         layer.on('click', function(e) {
                             selectedDept = code;
                             updateControls();
@@ -108,7 +119,8 @@
                     }
                 }).addTo(map);
 
-                // Ajout des contrôles
+                // Ajustement automatique de la vue pour la France
+                map.fitBounds(departmentsLayer.getBounds());
                 addControls();
                 addLegend();
             });
@@ -144,7 +156,6 @@
             
             controls.addTo(map);
 
-            // Gestion des événements
             document.getElementById('vigilance-select').addEventListener('change', updateDepartment);
             document.querySelectorAll('.picto-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
