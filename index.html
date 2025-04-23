@@ -54,14 +54,14 @@
 <div class="boutons">
   <strong>Événements :</strong>
   <button class="event-btn" data-event="orage">
-    <svg class="icon" width="20" height="20"><use xlink:href="#icone-orage"/></svg> Orage
+    <svg class="icon" width="20" height="20"><use href="#icone-orage"/></svg> Orage
   </button>
   <button class="event-btn" data-event="vent">
-    <svg class="icon" width="20" height="20"><use xlink:href="#icone-vent"/></svg> Vent
+    <svg class="icon" width="20" height="20"><use href="#icone-vent"/></svg> Vent
   </button>
 </div>
 
-<!-- Carte de France (fictive ici) -->
+<!-- Carte de France (test avec 2 départements) -->
 <svg id="carte" width="300" height="200" viewBox="0 0 100 100" style="border:1px solid #ccc;">
   <rect id="dep01" class="departement" x="10" y="10" width="30" height="30" fill="#ccc"/>
   <rect id="dep02" class="departement" x="60" y="10" width="30" height="30" fill="#ccc"/>
@@ -75,7 +75,7 @@
 
   let selection = null;
 
-  // Clic sur un département
+  // Sélectionner un département
   document.querySelectorAll('.departement').forEach(dep => {
     dep.addEventListener('click', () => {
       if (selection) selection.classList.remove('active');
@@ -84,7 +84,7 @@
     });
   });
 
-  // Changer la couleur
+  // Appliquer une couleur
   document.querySelectorAll('.couleur-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!selection) return alert("Sélectionne un département !");
@@ -92,24 +92,27 @@
     });
   });
 
-  // Ajouter une icône
+  // Appliquer une icône météo
   document.querySelectorAll('.event-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!selection) return alert("Sélectionne un département !");
-      // Supprimer ancienne icône
-      let old = selection.querySelector('svg');
-      if (old) old.remove();
+      
+      // Supprime l’ancienne icône
+      let oldIcon = selection.querySelector('svg');
+      if (oldIcon) oldIcon.remove();
 
-      let symbole = evenements[btn.dataset.event];
-      let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const symbole = evenements[btn.dataset.event];
+
+      const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      use.setAttribute("href", symbole);
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("width", "20");
       svg.setAttribute("height", "20");
       svg.setAttribute("x", "5");
       svg.setAttribute("y", "5");
-
-      let use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-      use.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", symbole);
       svg.appendChild(use);
+
       selection.appendChild(svg);
     });
   });
