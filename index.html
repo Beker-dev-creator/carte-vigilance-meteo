@@ -2,124 +2,47 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Carte Vigilance Météo France</title>
+    <title>Carte de Vigilance Météo</title>
+    <!-- Ajout de Leaflet CSS/JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        #map { height: 700px; width: 100%; }
-        .legend, .controls { background: rgba(255,255,255,0.9); padding: 10px; }
-        .picto-btn { width: 32px; height: 32px; cursor: pointer; border: 1px solid #ddd; }
+        #map { 
+            height: 600px; /* Hauteur obligatoire pour la carte */
+            width: 100%;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
+    <!-- Correction du titre -->
     <h1 style="text-align:center;">Carte de Vigilance Météo</h1>
+    
+    <!-- Conteneur de la carte -->
     <div id="map"></div>
 
+    <!-- Script fonctionnel -->
     <script>
-        // Configuration de base
+        // Initialisation de la carte
         const map = L.map('map').setView([46.5, 2], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png').addTo(map);
 
-        // Couleurs de vigilance
-        const couleurs = {
-            'Vert': '#4CAF50',
-            'Jaune': '#FFEB3B',
-            'Orange': '#FF9800',
-            'Rouge': '#F44336'
-        };
-
-        // Pictogrammes SVG optimisés
-        const pictos = {
-            'Vent': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0yIDExaDh2MkgyVjExem0xMCAwaDEwdjJIMTJWMTF6TTIgMTdoOHYySDJ2LTJ6bTE1IDBoNXYySDE3di0yeiIvPjwvc3ZnPg==',
-            'Orage': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMyAyaC0yLjdMMTMgOWgzbC0zIDcgMTAtOS0zLjUgMi4yVjJ6Ii8+PC9zdmc+',
-            'Neige': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxjaXJjbGUgY3g9IjgiIGN5PSIxOCIgcj0iMSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNiIgcj0iMSIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTQiIHI9IjEiLz48L3N2Zz4=',
-            'Pluie': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMiAyMHYtNGwtMyA2IDMtNnYtNGwtMyA2IDMtNlY5aC0zLjVBNS41IDUuNSAwIDAgMCA3IDE0djEiLz48L3N2Zz4=',
-            'Inondation': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0yMCAxM2MtLjUtMi41LTItNC01LTRzLTQuNSAxLjUtNSA0aDEwem0tMTAgM0MyLjUgMTYgMCAyMCAwIDIwaDIwcy0yLjUtNC0xMC00eiIvPjwvc3ZnPg==',
-            'Avalanche': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0yIDIybDUtMTAgNSAxMEgyem0xMS00bDMtNiAzIDZoLTZ6Ii8+PC9zdmc+'
-        };
+        // Ajout des tuiles OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
         // Chargement des départements
         fetch('https://france-geojson.gregoiredavid.fr/repo/departements-version-simplifiee.geojson')
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
-                const couche = L.geoJSON(data, {
-                    style: { color: 'white', weight: 1, fillOpacity: 0.7 },
-                    onEachFeature: (feature, layer) => {
-                        layer.on({
-                            click: e => {
-                                selected = feature.properties.code;
-                                e.target.setStyle({ weight: 3, color: 'black' });
-                                majControles();
-                            }
-                        });
-                        layer.bindPopup(`<b>${feature.properties.nom}</b><div id="popup-${feature.properties.code}"></div>`);
+                L.geoJSON(data, {
+                    style: {
+                        color: '#333',
+                        weight: 1,
+                        fillOpacity: 0.2
                     }
                 }).addTo(map);
-                
-                // Contrôles interactifs
-                const controles = L.control({position: 'topright'}).onAdd(() => {
-                    const div = L.DomUtil.create('div', 'controls');
-                    div.innerHTML = `
-                        <select id="niveau">${Object.keys(couleurs).map(n => `<option>${n}</option>`)}</select>
-                        <div style="margin-top:10px">${Object.entries(pictos).map(([n, p]) => `
-                            <button class="picto-btn" style="background-image:url('${p}')" data-picto="${n}"></button>
-                        `).join('')}</div>
-                    `;
-                    
-                    div.querySelector('#niveau').addEventListener('change', () => majAlerte('niveau'));
-                    div.querySelectorAll('.picto-btn').forEach(btn => 
-                        btn.addEventListener('click', () => majAlerte('picto', btn.dataset.picto))
-                    
-                    return div;
-                }).addTo(map);
-
-                // Légende
-                L.control({position: 'bottomright'}).onAdd(() => {
-                    const div = L.DomUtil.create('div', 'legend');
-                    div.innerHTML = `
-                        <b>Légende:</b><br>
-                        ${Object.entries(couleurs).map(([n, c]) => 
-                            `<div><span style="background:${c}">&nbsp;&nbsp;</span> ${n}</div>`).join('')}
-                        <br><b>Phénomènes:</b><br>
-                        ${Object.entries(pictos).map(([n, p]) => 
-                            `<img src="${p}" style="width:20px"> ${n} `).join('')}
-                    `;
-                    return div;
-                }).addTo(map);
             });
-
-        let selected = null;
-
-        function majAlerte(type, valeur) {
-            if(!selected) return;
-            
-            map.eachLayer(layer => {
-                if(layer.feature?.properties.code === selected) {
-                    if(type === 'niveau') {
-                        const niveau = document.getElementById('niveau').value;
-                        layer.setStyle({ fillColor: couleurs[niveau] });
-                        document.querySelector(`#popup-${selected}`).innerHTML = `
-                            Vigilance: ${niveau}<br>
-                            Phénomène: ${layer.phenomene || ''}
-                        `;
-                    } else {
-                        layer.phenomene = valeur;
-                        document.querySelector(`#popup-${selected}`).innerHTML += `
-                            ${valeur} <img src="${pictos[valeur]}" style="width:20px">
-                        `;
-                    }
-                }
-            });
-        }
-
-        function majControles() {
-            if(selected) {
-                document.getElementById('niveau').value = 
-                    Array.from(document.querySelectorAll('.leaflet-popup-content'))
-                         .find(p => p.id === `popup-${selected}`)
-                         ?.textContent.match(/Vigilance: (\w+)/)?.[1] || 'Vert';
-            }
-        }
     </script>
 </body>
 </html>
