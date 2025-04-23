@@ -176,6 +176,14 @@
 
 <div class="controle">
   <h2>Vigilance météo</h2>
+</div>
+
+<div class="boutons">
+  <button class="couleur-btn" data-couleur="#32CD32">Vert</button>
+  <button class="couleur-btn" data-couleur="#FFD700">Jaune</button>
+  <button class="couleur-btn" data-couleur="#FF8C00">Orange</button>
+  <button class="couleur-btn" data-couleur="#FF0000">Rouge</button>
+</div>
 
   <div class="boutons">
   <button class="evenement-btn" data-event="orage">
@@ -199,7 +207,8 @@
 </div>
 
 <script>
-  let evenements = {
+
+let evenements = {
     orage: "#icone-orage",
     vent: "#icone-vent",
     pluie: "#icone-pluie",
@@ -238,6 +247,11 @@
 
       svg.appendChild(use);
       selection.appendChild(svg);
+	    document.querySelectorAll('.couleur-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!selection) return alert("Sélectionne un département d'abord !");
+    selection.setAttribute('fill', btn.dataset.couleur);
+ 
     });
   });
 </script>
