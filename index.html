@@ -3,102 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carte Vigilance Météo France</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://d3js.org/topojson.v3.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>Carte de Vigilance Météo - France</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-        }
-        #map-container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
         }
         #map {
             height: 700px;
             width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
         }
         .legend {
             padding: 10px;
             background: white;
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            line-height: 1.5;
-        }
-        .legend i {
-            width: 18px;
-            height: 18px;
-            float: left;
-            margin-right: 8px;
-            opacity: 0.7;
         }
         .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
             background: white;
             padding: 10px;
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
         }
-        .picto-selector {
-            margin-top: 10px;
-        }
-        .picto-btn {
-            font-size: 20px;
-            padding: 5px 10px;
-            margin: 2px;
-            cursor: pointer;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 4px;
-        }
-        .picto-btn:hover {
-            background: #ddd;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .info {
-            padding: 6px 8px;
-            font: 14px/16px Arial, Helvetica, sans-serif;
-            background: white;
-            background: rgba(255,255,255,0.8);
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            border-radius: 5px;
-        }
-        .info h4 {
-            margin: 0 0 5px;
-            color: #777;
-        }
     </style>
 </head>
 <body>
     <h1>Carte de Vigilance Météorologique</h1>
-    <div id="map-container">
-        <div id="map"></div>
-    </div>
+    <div id="map"></div>
 
     <script>
-        // Initialisation de la carte
+        // Initialisation de la carte centrée sur la France
         const map = L.map('map').setView([46.5, 2], 6);
 
-        // Ajout du fond de carte
+        // Ajout du fond de carte OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap France | Données cartographiques © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '© OpenStreetMap contributors',
             maxZoom: 20
         }).addTo(map);
 
-        // Couleurs de vigilance
+        // Configuration des couleurs et pictogrammes
         const vigilanceColors = {
             'Vert': '#4CAF50',
             'Jaune': '#FFEB3B',
@@ -106,7 +54,6 @@
             'Rouge': '#F44336'
         };
 
-        // Pictogrammes météo
         const pictograms = {
             'Soleil': '☀️',
             'Pluie': '🌧️',
@@ -116,139 +63,146 @@
             'Brouillard': '🌫️'
         };
 
-        // Données des départements (simplifiées)
-        const departements = {
-            "01": {name: "Ain", vigilance: "Vert", picto: "Soleil"},
-            "02": {name: "Aisne", vigilance: "Jaune", picto: "Pluie"},
-            "03": {name: "Allier", vigilance: "Vert", picto: "Soleil"},
-            "04": {name: "Alpes-de-Haute-Provence", vigilance: "Orange", picto: "Vent"},
-            "05": {name: "Hautes-Alpes", vigilance: "Rouge", picto: "Neige"},
-            // ... Ajoutez tous les départements ici
-            "75": {name: "Paris", vigilance: "Jaune", picto: "Pluie"},
-            "76": {name: "Seine-Maritime", vigilance: "Orange", picto: "Vent"}
-        };
+        // Structure de données pour les départements
+        let departementsData = {};
 
-        // Chargement des contours des départements
+        // Chargement du GeoJSON des départements
         fetch('https://france-geojson.gregoiredavid.fr/repo/departements.geojson')
             .then(response => response.json())
             .then(data => {
-                const geojson = L.geoJson(data, {
+                // Création de la couche GeoJSON
+                const departmentsLayer = L.geoJSON(data, {
                     style: function(feature) {
-                        const deptCode = feature.properties.code;
-                        const deptData = departements[deptCode] || {vigilance: "Vert"};
                         return {
-                            fillColor: vigilanceColors[deptData.vigilance],
+                            fillColor: vigilanceColors[departementsData[feature.properties.code]?.vigilance || 'Vert'],
                             weight: 1,
-                            opacity: 1,
                             color: 'white',
                             fillOpacity: 0.7
                         };
                     },
                     onEachFeature: function(feature, layer) {
-                        const deptCode = feature.properties.code;
-                        const deptData = departements[deptCode] || {name: feature.properties.nom, vigilance: "Vert"};
+                        const code = feature.properties.code;
                         
-                        // Info-bulle
+                        // Initialisation des données département
+                        if (!departementsData[code]) {
+                            departementsData[code] = {
+                                name: feature.properties.nom,
+                                vigilance: 'Vert',
+                                picto: 'Soleil'
+                            };
+                        }
+
+                        // Popup d'information
                         layer.bindPopup(`
-                            <strong>${deptData.name}</strong><br>
-                            Vigilance: ${deptData.vigilance}<br>
-                            Phénomène: ${deptData.picto} ${pictograms[deptData.picto] || ''}
+                            <b>${departementsData[code].name}</b><br>
+                            Vigilance: ${departementsData[code].vigilance}<br>
+                            Phénomène: ${pictograms[departementsData[code].picto]} ${departementsData[code].picto}
                         `);
-                        
-                        // Gestion du clic pour modifier
+
+                        // Gestion du clic
                         layer.on('click', function(e) {
-                            selectedDept = deptCode;
-                            updateSelectedDept();
+                            selectedDept = code;
+                            updateControls();
+                            highlightFeature(e.target);
                         });
                     }
                 }).addTo(map);
 
-                // Légende
-                const legend = L.control({position: 'bottomright'});
-                legend.onAdd = function(map) {
-                    const div = L.DomUtil.create('div', 'legend info');
-                    div.innerHTML = '<h4>Légende</h4>';
-                    
-                    for (const [level, color] of Object.entries(vigilanceColors)) {
-                        div.innerHTML += 
-                            `<i style="background:${color}"></i> ${level}<br>`;
-                    }
-                    
-                    div.innerHTML += '<h4>Pictogrammes</h4>';
-                    for (const [name, picto] of Object.entries(pictograms)) {
-                        div.innerHTML += `${picto} ${name}<br>`;
-                    }
-                    
-                    return div;
-                };
-                legend.addTo(map);
+                // Ajout des contrôles
+                addControls();
+                addLegend();
+            });
 
-                // Contrôles interactifs
-                const controls = L.control({position: 'topright'});
-                controls.onAdd = function(map) {
-                    const div = L.DomUtil.create('div', 'controls');
-                    div.innerHTML = '<h4>Modifier département</h4>';
-                    
-                    // Sélecteur de vigilance
-                    div.innerHTML += '<select id="vigilance-select">';
-                    for (const level in vigilanceColors) {
-                        div.innerHTML += `<option value="${level}">${level}</option>`;
-                    }
-                    div.innerHTML += '</select>';
-                    
-                    // Sélecteur de pictogramme
-                    div.innerHTML += '<div class="picto-selector">';
-                    for (const [name, picto] of Object.entries(pictograms)) {
-                        div.innerHTML += 
-                            `<button class="picto-btn" data-picto="${name}">${picto}</button>`;
-                    }
-                    div.innerHTML += '</div>';
-                    
-                    return div;
-                };
-                controls.addTo(map);
+        // Fonction pour mettre en surbrillance un département
+        function highlightFeature(layer) {
+            layer.setStyle({
+                weight: 3,
+                color: '#000',
+                fillOpacity: 0.7
+            });
+        }
 
-                // Gestion des interactions
-                let selectedDept = null;
-                
-                function updateSelectedDept() {
-                    if (!selectedDept) return;
-                    
-                    const vigilance = document.getElementById('vigilance-select').value;
-                    departements[selectedDept].vigilance = vigilance;
-                    
-                    // Mise à jour de la carte
-                    geojson.setStyle(function(feature) {
-                        if (feature.properties.code === selectedDept) {
-                            return {
-                                fillColor: vigilanceColors[vigilance],
-                                weight: 2,
-                                color: '#000',
-                                fillOpacity: 0.7
-                            };
-                        }
-                        return {
-                            fillColor: vigilanceColors[departements[feature.properties.code]?.vigilance || "Vert"],
-                            weight: 1,
-                            color: 'white',
-                            fillOpacity: 0.7
-                        };
-                    });
-                }
-                
-                // Écouteurs d'événements
-                document.getElementById('vigilance-select').addEventListener('change', updateSelectedDept);
-                
-                document.querySelectorAll('.picto-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        if (selectedDept) {
-                            departements[selectedDept].picto = this.dataset.picto;
-                            // On pourrait actualiser le popup ici
-                        }
-                    });
+        // Ajout des contrôles interactifs
+        function addControls() {
+            const controls = L.control({position: 'topright'});
+            
+            controls.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'controls');
+                div.innerHTML = `
+                    <h3>Contrôles</h3>
+                    <select id="vigilance-select">
+                        ${Object.keys(vigilanceColors).map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                    <div id="picto-selector">
+                        ${Object.entries(pictograms).map(([name, picto]) => `
+                            <button class="picto-btn" data-picto="${name}">${picto}</button>
+                        `).join('')}
+                    </div>
+                `;
+                return div;
+            };
+            
+            controls.addTo(map);
+
+            // Gestion des événements
+            document.getElementById('vigilance-select').addEventListener('change', updateDepartment);
+            document.querySelectorAll('.picto-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    departementsData[selectedDept].picto = this.dataset.picto;
+                    updateDepartment();
                 });
-            })
-            .catch(error => console.error('Erreur de chargement des données:', error));
+            });
+        }
+
+        // Ajout de la légende
+        function addLegend() {
+            const legend = L.control({position: 'bottomright'});
+            
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <h4>Légende</h4>
+                    ${Object.entries(vigilanceColors).map(([level, color]) => `
+                        <div><span style="background:${color}">&nbsp;&nbsp;&nbsp;</span> ${level}</div>
+                    `).join('')}
+                    <h4>Pictogrammes</h4>
+                    ${Object.entries(pictograms).map(([name, picto]) => `
+                        <div>${picto} ${name}</div>
+                    `).join('')}
+                `;
+                return div;
+            };
+            
+            legend.addTo(map);
+        }
+
+        // Mise à jour des contrôles
+        let selectedDept = null;
+        
+        function updateControls() {
+            if (selectedDept) {
+                document.getElementById('vigilance-select').value = departementsData[selectedDept].vigilance;
+            }
+        }
+
+        // Mise à jour d'un département
+        function updateDepartment() {
+            if (selectedDept) {
+                departementsData[selectedDept].vigilance = document.getElementById('vigilance-select').value;
+                map.eachLayer(layer => {
+                    if (layer.feature?.properties.code === selectedDept) {
+                        layer.setStyle({
+                            fillColor: vigilanceColors[departementsData[selectedDept].vigilance]
+                        });
+                        layer.bindPopup(`
+                            <b>${departementsData[selectedDept].name}</b><br>
+                            Vigilance: ${departementsData[selectedDept].vigilance}<br>
+                            Phénomène: ${pictograms[departementsData[selectedDept].picto]} ${departementsData[selectedDept].picto}
+                        `);
+                    }
+                });
+            }
+        }
     </script>
 </body>
 </html>
