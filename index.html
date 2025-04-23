@@ -149,84 +149,97 @@
 </svg>
 </div>
 
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="icone-orage" viewBox="0 0 64 64">
+    <path d="M32 4L24 32h8l-4 28 16-32h-8l8-24z" fill="#ffcc00"/>
+  </symbol>
+  <symbol id="icone-vent" viewBox="0 0 64 64">
+    <path d="M10 20h44M10 32h34M10 44h24" stroke="#66ccff" stroke-width="6" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="icone-pluie" viewBox="0 0 64 64">
+    <circle cx="32" cy="20" r="12" fill="#a0c4ff"/>
+    <line x1="28" y1="36" x2="28" y2="50" stroke="#3399ff" stroke-width="4"/>
+    <line x1="36" y1="36" x2="36" y2="50" stroke="#3399ff" stroke-width="4"/>
+  </symbol>
+  <symbol id="icone-neige" viewBox="0 0 64 64">
+    <circle cx="32" cy="20" r="12" fill="#ffffff"/>
+    <text x="32" y="48" font-size="20" text-anchor="middle" fill="#99ccff">*</text>
+  </symbol>
+  <symbol id="icone-inondation" viewBox="0 0 64 64">
+    <path d="M0 48c8-8 16 8 24 0s16 8 24 0 16 8 24 0" fill="none" stroke="#0077be" stroke-width="4"/>
+  </symbol>
+  <symbol id="icone-avalanche" viewBox="0 0 64 64">
+    <circle cx="32" cy="20" r="12" fill="#ffffff"/>
+    <path d="M16 40 L32 60 L48 40 Z" fill="#cccccc"/>
+  </symbol>
+</svg>
+
 <div class="controle">
   <h2>Vigilance météo</h2>
 
-  <div class="form-section">
-    <label>Événement :</label><br>
-    <button class="evenement-btn" data-event="orage">ORAGE</button>
-    <button class="evenement-btn" data-event="pluie">PLUIE</button>
-    <button class="evenement-btn" data-event="vent">VENT</button>
-    <button class="evenement-btn" data-event="neige">NEIGE</button>
-  </div>
-
-  <div class="form-section">
-    <label>Couleur :</label><br>
-    <button class="btn" data-color="#00FF00">Vert</button>
-    <button class="btn" data-color="#FFFF00">Jaune</button>
-    <button class="btn" data-color="#FF8000">Orange</button>
-    <button class="btn" data-color="#FF0000">Rouge</button>
-  </div>
+  <div class="boutons">
+  <button class="evenement-btn" data-event="orage">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-orage"/></svg> Orage
+  </button>
+  <button class="evenement-btn" data-event="vent">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-vent"/></svg> Vent
+  </button>
+  <button class="evenement-btn" data-event="pluie">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-pluie"/></svg> Pluie
+  </button>
+  <button class="evenement-btn" data-event="neige">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-neige"/></svg> Neige
+  </button>
+  <button class="evenement-btn" data-event="inondation">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-inondation"/></svg> Inondation
+  </button>
+  <button class="evenement-btn" data-event="avalanche">
+    <svg class="icon" width="20" height="20"><use xlink:href="#icone-avalanche"/></svg> Avalanche
+  </button>
 </div>
 
 <script>
-  <script>
-  let couleurActuelle = "#00FF00"; // Vert par défaut (officiel)
-  let evenementActuel = "";
+  let evenements = {
+    orage: "#icone-orage",
+    vent: "#icone-vent",
+    pluie: "#icone-pluie",
+    neige: "#icone-neige",
+    inondation: "#icone-inondation",
+    avalanche: "#icone-avalanche"
+  };
 
-  // Gestion des boutons de couleur
-  document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      couleurActuelle = btn.getAttribute('data-color');
+  let selection = null;
+
+  document.querySelectorAll('.departement').forEach(dep => {
+    dep.addEventListener('click', () => {
+      if (selection) selection.classList.remove('active');
+      selection = dep;
+      dep.classList.add('active');
     });
   });
 
-  // Gestion des boutons d’événements
   document.querySelectorAll('.evenement-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      evenementActuel = btn.getAttribute('data-event');
+      if (!selection) return alert("Clique d'abord sur un département !");
+      let symbole = evenements[btn.dataset.event];
+
+      // Supprimer un ancien pictogramme si présent
+      let old = selection.querySelector('use');
+      if (old) old.remove();
+
+      let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "20");
+      svg.setAttribute("height", "20");
+      svg.setAttribute("x", "5");
+      svg.setAttribute("y", "5");
+
+      let use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      use.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", symbole);
+
+      svg.appendChild(use);
+      selection.appendChild(svg);
     });
   });
-
-  // Interaction avec les départements
-  document.querySelectorAll('path[data-nom]').forEach(dept => {
-    dept.style.cursor = "pointer";
-
-    dept.addEventListener('click', () => {
-      dept.setAttribute("fill", couleurActuelle);
-
-      const svg = dept.ownerSVGElement;
-      const nom = dept.getAttribute('data-nom');
-
-      // Supprimer ancien pictogramme s’il y en a
-      const oldIcon = svg.querySelector(`image[data-for="${nom}"]`);
-      if (oldIcon) oldIcon.remove();
-
-      if (evenementActuel !== "") {
-        const bbox = dept.getBBox();
-        const x = bbox.x + bbox.width / 2 - 10;
-        const y = bbox.y + bbox.height / 2 - 10;
-
-        const icon = document.createElementNS("http://www.w3.org/2000/svg", "image");
-        icon.setAttribute("href", `icons/${evenementActuel}.svg`);
-        icon.setAttribute("x", x);
-        icon.setAttribute("y", y);
-        icon.setAttribute("width", "20");
-        icon.setAttribute("height", "20");
-        icon.setAttribute("data-for", nom);
-
-        svg.appendChild(icon);
-      }
-    });
-  });
-</script>
-
-
-
-
-
-
-
 </script>
 
 </body>
