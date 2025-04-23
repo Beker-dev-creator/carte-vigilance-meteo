@@ -2,47 +2,174 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Carte de Vigilance Météo</title>
-    <!-- Ajout de Leaflet CSS/JS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte Vigilance Météo France</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         #map { 
-            height: 600px; /* Hauteur obligatoire pour la carte */
+            height: 700px;
             width: 100%;
+            border-radius: 8px;
             margin: 20px 0;
+        }
+        .controls {
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        .picto-btn {
+            width: 32px;
+            height: 32px;
+            margin: 2px;
+            cursor: pointer;
+            background-size: contain;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
-    <!-- Correction du titre -->
-    <h1 style="text-align:center;">Carte de Vigilance Météo</h1>
-    
-    <!-- Conteneur de la carte -->
+    <h1 style="text-align: center;">Carte de Vigilance Météorologique</h1>
     <div id="map"></div>
 
-    <!-- Script fonctionnel -->
     <script>
-        // Initialisation de la carte
+        // Configuration initiale
         const map = L.map('map').setView([46.5, 2], 6);
+        let selectedDept = null;
 
-        // Ajout des tuiles OpenStreetMap
+        // Couches cartographiques
         L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
+
+        // Couleurs de vigilance
+        const vigilanceColors = {
+            'Vert': '#4CAF50',
+            'Jaune': '#FFEB3B',
+            'Orange': '#FF9800',
+            'Rouge': '#F44336'
+        };
+
+        // Pictogrammes SVG optimisés
+        const pictograms = {
+            'Vent': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0yIDExaDh2MkgyVjExem0xMCAwaDEwdjJIMTJWMTF6TTIgMTdoOHYySDJ2LTJ6bTE1IDBoNXYySDE3di0yeiIvPjwvc3ZnPg==',
+            'Orage': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMyAyaC0yLjdMMTMgOWgzbC0zIDcgMTAtOS0zLjUgMi4yVjJ6Ii8+PC9zdmc+',
+            'Neige': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxjaXJjbGUgY3g9IjgiIGN5PSIxOCIgcj0iMSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iNiIgcj0iMSIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTQiIHI9IjEiLz48L3N2Zz4=',
+            'Pluie': 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiPjxwYXRoIGQ9Ik0xMiAyMHYtNGwtMyA2IDMtNnYtNGwtMyA2IDMtNlY5aC0zLjVBNS41IDUuNSAwIDAgMCA3IDE0djEiLz48L3N2Zz4='
+        };
 
         // Chargement des départements
         fetch('https://france-geojson.gregoiredavid.fr/repo/departements-version-simplifiee.geojson')
             .then(response => response.json())
             .then(data => {
-                L.geoJSON(data, {
+                const departments = L.geoJSON(data, {
                     style: {
-                        color: '#333',
                         weight: 1,
-                        fillOpacity: 0.2
+                        color: 'white',
+                        fillOpacity: 0.7
+                    },
+                    onEachFeature: (feature, layer) => {
+                        const code = feature.properties.code;
+                        
+                        layer.on({
+                            click: (e) => {
+                                selectedDept = code;
+                                e.target.setStyle({ weight: 3, color: 'black' });
+                                updateControls();
+                            }
+                        });
+
+                        layer.bindPopup(`
+                            <b>${feature.properties.nom}</b>
+                            <div id="popup-${code}" class="popup-content">
+                                <p>Vigilance: <span class="vigilance-level">Vert</span></p>
+                                <p>Phénomène: <span class="phenomene"></span></p>
+                            </div>
+                        `);
                     }
                 }).addTo(map);
+
+                addControls();
+                addLegend();
             });
+
+        function addControls() {
+            const controls = L.control({ position: 'topright' });
+            
+            controls.onAdd = () => {
+                const div = L.DomUtil.create('div', 'controls');
+                div.innerHTML = `
+                    <h4>Modifier le département</h4>
+                    <select id="vigilance-select">
+                        ${Object.keys(vigilanceColors).map(l => `<option>${l}</option>`)}
+                    </select>
+                    <div style="margin-top:10px">
+                        ${Object.entries(pictograms).map(([name, svg]) => `
+                            <button class="picto-btn" 
+                                    style="background-image: url('${svg}')" 
+                                    data-picto="${name}" 
+                                    title="${name}"></button>
+                        `).join('')}
+                    </div>
+                `;
+
+                // Gestion des événements
+                div.querySelector('#vigilance-select').addEventListener('change', updateVigilance);
+                div.querySelectorAll('.picto-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if(selectedDept) {
+                            const popupContent = document.querySelector(`#popup-${selectedDept} .phenomene`);
+                            popupContent.innerHTML = `
+                                ${btn.dataset.picto} 
+                                <img src="${pictograms[btn.dataset.picto]}" width="20">
+                            `;
+                        }
+                    });
+                });
+
+                return div;
+            };
+            
+            controls.addTo(map);
+        }
+
+        function updateVigilance() {
+            if(selectedDept) {
+                const level = document.getElementById('vigilance-select').value;
+                const popupContent = document.querySelector(`#popup-${selectedDept} .vigilance-level`);
+                
+                popupContent.textContent = level;
+                popupContent.style.color = vigilanceColors[level];
+                
+                map.eachLayer(layer => {
+                    if(layer.feature?.properties.code === selectedDept) {
+                        layer.setStyle({ fillColor: vigilanceColors[level] });
+                    }
+                });
+            }
+        }
+
+        function addLegend() {
+            const legend = L.control({ position: 'bottomright' });
+            
+            legend.onAdd = () => {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <h4>Légende</h4>
+                    ${Object.entries(vigilanceColors).map(([name, color]) => `
+                        <div><span style="background:${color}; width:20px; display:inline-block;"></span> ${name}</div>
+                    `).join('')}
+                    <h4 style="margin-top:10px;">Phénomènes</h4>
+                    ${Object.entries(pictograms).map(([name, svg]) => `
+                        <div><img src="${svg}" width="20"> ${name}</div>
+                    `).join('')}
+                `;
+                return div;
+            };
+            
+            legend.addTo(map);
+        }
     </script>
 </body>
 </html>
