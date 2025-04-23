@@ -2,198 +2,129 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carte Vigilance Météo France</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <title>Carte Vigilance France</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-        }
-        #map {
-            height: 700px;
-            width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        }
-        .legend {
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        }
-        .controls {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-        }
-        /* Correction de l'interactivité */
-        .leaflet-interactive {
-            cursor: pointer !important;
-        }
+        #map { height: 700px; }
+        .legend, .controls { background: white; padding: 10px; margin: 10px; }
     </style>
 </head>
 <body>
-    <h1>Carte de Vigilance Météorologique</h1>
+    <h1>Carte de Vigilance</h1>
     <div id="map"></div>
 
     <script>
-        // Configuration de la carte
-        const map = L.map('map', {
-            minZoom: 5,
-            maxZoom: 12,
-            maxBounds: [[41, -5], [51, 10]]
-        }).setView([46.5, 2], 6);
-
-        // Fond de carte simplifié
+        // Initialisation carte
+        const map = L.map('map').setView([46.5, 2], 6);
+        
+        // Couche OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            noWrap: true
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Couches interactives
-        let departmentsLayer;
-        let selectedDept = null;
-
-        // Couleurs et pictogrammes
-        const vigilanceColors = {
-            'Vert': '#4CAF50',
-            'Jaune': '#FFEB3B',
-            'Orange': '#FF9800',
-            'Rouge': '#F44336'
+        // Données de vigilance
+        const couleurs = {
+            Vert: '#4CAF50',
+            Jaune: '#FFEB3B',
+            Orange: '#FF9800',
+            Rouge: '#F44336'
         };
 
-        const pictograms = {
-            'Soleil': '☀️',
-            'Pluie': '🌧️',
-            'Orage': '⛈️',
-            'Neige': '❄️',
-            'Vent': '🌬️',
-            'Brouillard': '🌫️'
-        };
-
-        // Chargement des départements
-        fetch('https://france-geojson.gregoiredavid.fr/repo/departements-version-simplifiee.geojson')
+        // Chargement départements
+        fetch('https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-avec-outre-mer.geojson')
             .then(res => res.json())
             .then(data => {
-                departmentsLayer = L.geoJSON(data, {
-                    style: feature => ({
-                        fillColor: vigilanceColors['Vert'],
-                        weight: 1,
-                        color: 'white',
-                        fillOpacity: 0.7
-                    }),
+                const couche = L.geoJSON(data, {
+                    style: { color: 'white', weight: 1, fillOpacity: 0.7 },
                     onEachFeature: (feature, layer) => {
                         const code = feature.properties.code;
                         
-                        // Gestion des clics
-                        layer.on({
-                            click: e => {
-                                selectedDept = code;
-                                updateControls();
-                                e.target.setStyle({ color: '#000', weight: 3 });
-                                updatePopupContent(layer, code);
-                            },
-                            mouseout: e => {
-                                if (code !== selectedDept) {
-                                    e.target.setStyle({ color: 'white', weight: 1 });
-                                }
-                            }
+                        // Initialisation alerte
+                        layer.alerte = {
+                            niveau: 'Vert',
+                            picto: '☀️',
+                            nom: feature.properties.nom
+                        };
+
+                        // Interaction au clic
+                        layer.on('click', e => {
+                            e.target.setStyle({ color: 'black', weight: 3 });
+                            selected = code;
+                            majControles();
                         });
 
-                        // Initialisation du popup
-                        updatePopupContent(layer, code);
+                        // Popup dynamique
+                        layer.bindPopup(`
+                            <b>${layer.alerte.nom}</b><br>
+                            Vigilance: <span class="niveau">${layer.alerte.niveau}</span><br>
+                            Phénomène: <span class="picto">${layer.alerte.picto}</span>
+                        `);
                     }
                 }).addTo(map);
 
-                // Ajustement de la vue
-                map.fitBounds(departmentsLayer.getBounds());
-                addControls();
-                addLegend();
+                // Centrer sur la France
+                map.fitBounds(couche.getBounds());
+
+                // Ajout contrôles
+                const controles = L.control({position: 'topright'});
+                controles.onAdd = () => {
+                    const div = L.DomUtil.create('div', 'controls');
+                    div.innerHTML = `
+                        <h3>Modifier département</h3>
+                        <select id="niveau">
+                            ${Object.keys(couleurs).map(n => `<option>${n}</option>`)}
+                        </select>
+                        <div id="pictos">
+                            ${['☀️','🌧️','⛈️','❄️','🌬️'].map(p => `
+                                <button class="picto" data-picto="${p}">${p}</button>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    // Événements
+                    div.querySelector('#niveau').addEventListener('change', function() {
+                        if(selected) majAlerte('niveau', this.value);
+                    });
+                    
+                    div.querySelectorAll('.picto').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            if(selected) majAlerte('picto', this.dataset.picto);
+                        });
+                    });
+                    
+                    return div;
+                };
+                controles.addTo(map);
             });
 
-        function updatePopupContent(layer, code) {
-            const baseContent = `
-                <b>${layer.feature.properties.nom}</b><br>
-                Vigilance: <span id="vigilance-${code}">Vert</span><br>
-                Phénomène: <span id="picto-${code}">☀️ Soleil</span>
-            `;
-            layer.bindPopup(baseContent);
+        let selected = null;
+
+        function majAlerte(type, valeur) {
+            map.eachLayer(layer => {
+                if(layer.feature?.properties.code === selected) {
+                    if(type === 'niveau') {
+                        layer.setStyle({ fillColor: couleurs[valeur] });
+                        layer.alerte.niveau = valeur;
+                    } else {
+                        layer.alerte.picto = valeur;
+                    }
+                    layer.getPopup().setContent(`
+                        <b>${layer.alerte.nom}</b><br>
+                        Vigilance: <span class="niveau">${layer.alerte.niveau}</span><br>
+                        Phénomène: <span class="picto">${layer.alerte.picto}</span>
+                    `);
+                }
+            });
         }
 
-        function addControls() {
-            const controls = L.control({position: 'topright'});
-            
-            controls.onAdd = () => {
-                const div = L.DomUtil.create('div', 'controls');
-                div.innerHTML = `
-                    <h3>Modification</h3>
-                    <select id="vigilance-select">
-                        ${Object.entries(vigilanceColors).map(([n]) => `<option>${n}</option>`)}
-                    </select>
-                    <div class="picto-grid">
-                        ${Object.entries(pictograms).map(([n, p]) => `
-                            <button data-picto="${n}" class="picto-btn">${p}</button>
-                        `).join('')}
-                    </div>
-                `;
-
-                // Gestion des événements
-                div.querySelector('#vigilance-select').addEventListener('change', function() {
-                    if (selectedDept) {
-                        departmentsLayer.resetStyle();
-                        departmentsLayer.eachLayer(layer => {
-                            if (layer.feature.properties.code === selectedDept) {
-                                layer.setStyle({ fillColor: vigilanceColors[this.value] });
-                                document.querySelector(`#vigilance-${selectedDept}`).textContent = this.value;
-                            }
-                        });
+        function majControles() {
+            if(selected) {
+                map.eachLayer(layer => {
+                    if(layer.feature?.properties.code === selected) {
+                        document.getElementById('niveau').value = layer.alerte.niveau;
                     }
                 });
-
-                div.querySelectorAll('.picto-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        if (selectedDept) {
-                            document.querySelector(`#picto-${selectedDept}`).innerHTML = 
-                                `${this.innerHTML} ${this.dataset.picto}`;
-                        }
-                    });
-                });
-
-                return div;
-            };
-            
-            controls.addTo(map);
-        }
-
-        function addLegend() {
-            const legend = L.control({position: 'bottomright'});
-            
-            legend.onAdd = () => {
-                const div = L.DomUtil.create('div', 'legend');
-                div.innerHTML = `
-                    <h4>Légende</h4>
-                    ${Object.entries(vigilanceColors).map(([n, c]) => `
-                        <div><span style="background:${c}">&nbsp;&nbsp;&nbsp;</span> ${n}</div>
-                    `).join('')}
-                    <h4>Phénomènes</h4>
-                    ${Object.entries(pictograms).map(([n, p]) => `
-                        <div>${p} ${n}</div>
-                    `).join('')}
-                `;
-                return div;
-            };
-            
-            legend.addTo(map);
-        }
-
-        function updateControls() {
-            if (selectedDept) {
-                document.getElementById('vigilance-select').value = 
-                    document.querySelector(`#vigilance-${selectedDept}`).textContent;
             }
         }
     </script>
