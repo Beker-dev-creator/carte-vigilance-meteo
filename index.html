@@ -15,15 +15,14 @@
   let blobs = [];
 
   function preload() {
-    // Carte de la France avec départements
-    mapImg = loadImage("https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/France_location_map-Departements-2016.svg/600px-France_location_map-Departements-2016.svg.png");
+    // ✅ Carte fiable sans problème CORS
+    mapImg = loadImage("https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/France_map_Lambert-93_with_departments.png/600px-France_map_Lambert-93_with_departments.png");
   }
 
   function setup() {
     createCanvas(600, 600);
     imageMode(CENTER);
 
-    // Génération des précipitations
     for (let i = 0; i < 60; i++) {
       blobs.push({
         x: random(150, 450),
@@ -31,7 +30,7 @@
         dx: random(-0.8, 0.8),
         dy: random(-0.8, 0.8),
         size: random(10, 30),
-        intensity: random(0, 100) // 0 à 100%
+        intensity: random(0, 100)
       });
     }
   }
@@ -54,7 +53,6 @@
   }
 
   function getColorFromIntensity(intensity) {
-    // Mapping des couleurs selon l’intensité
     if (intensity < 25) return color(100, 150, 255, 150);   // Bleu clair
     else if (intensity < 50) return color(0, 200, 0, 170);   // Vert
     else if (intensity < 75) return color(255, 200, 0, 180); // Jaune
