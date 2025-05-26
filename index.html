@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Météo France</title>
+  <title>Radar Météo France – Carte Simplifiée</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
@@ -11,18 +11,14 @@
 </head>
 <body>
 <script>
-  let mapImg;
   let blobs = [];
-
-  function preload() {
-    // ✅ Carte fiable sans problème CORS
-    mapImg = loadImage("https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/France_map_Lambert-93_with_departments.png/600px-France_map_Lambert-93_with_departments.png");
-  }
 
   function setup() {
     createCanvas(600, 600);
+    drawFranceMap(); // une seule fois au début
     imageMode(CENTER);
 
+    // Création de précipitations aléatoires
     for (let i = 0; i < 60; i++) {
       blobs.push({
         x: random(150, 450),
@@ -37,7 +33,7 @@
 
   function draw() {
     background(255);
-    image(mapImg, width / 2, height / 2, 600, 600);
+    drawFranceMap();
 
     noStroke();
     for (let b of blobs) {
@@ -50,6 +46,37 @@
       if (b.x < 100 || b.x > 500) b.dx *= -1;
       if (b.y < 80 || b.y > 520) b.dy *= -1;
     }
+  }
+
+  function drawFranceMap() {
+    push();
+    fill(230);
+    stroke(100);
+    strokeWeight(2);
+    beginShape();
+    // Contour stylisé de la France, simplifié
+    vertex(300, 100);
+    vertex(350, 120);
+    vertex(370, 150);
+    vertex(400, 180);
+    vertex(420, 240);
+    vertex(430, 300);
+    vertex(420, 360);
+    vertex(390, 420);
+    vertex(370, 460);
+    vertex(340, 500);
+    vertex(300, 520);
+    vertex(260, 500);
+    vertex(230, 460);
+    vertex(210, 420);
+    vertex(180, 360);
+    vertex(170, 300);
+    vertex(180, 240);
+    vertex(200, 180);
+    vertex(230, 150);
+    vertex(260, 120);
+    endShape(CLOSE);
+    pop();
   }
 
   function getColorFromIntensity(intensity) {
