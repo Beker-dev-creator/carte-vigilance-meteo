@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Météo France – Carte Simplifiée</title>
+  <title>Radar Météo France – Précipitations Fluides</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
@@ -15,18 +15,16 @@
 
   function setup() {
     createCanvas(600, 600);
-    drawFranceMap(); // une seule fois au début
     imageMode(CENTER);
 
-    // Création de précipitations aléatoires
     for (let i = 0; i < 60; i++) {
       blobs.push({
         x: random(150, 450),
         y: random(100, 500),
-        dx: random(-0.8, 0.8),
-        dy: random(-0.8, 0.8),
         size: random(10, 30),
-        intensity: random(0, 100)
+        intensity: random(0, 100),
+        noiseOffsetX: random(1000),
+        noiseOffsetY: random(2000)
       });
     }
   }
@@ -40,11 +38,21 @@
       fill(getColorFromIntensity(b.intensity));
       ellipse(b.x, b.y, b.size);
 
-      b.x += b.dx;
-      b.y += b.dy;
+      // Déplacement fluide basé sur du bruit de Perlin
+      let speed = 0.5;
+      b.x += map(noise(b.noiseOffsetX), 0, 1, -speed, speed);
+      b.y += map(noise(b.noiseOffsetY), 0, 1, -speed, speed);
 
-      if (b.x < 100 || b.x > 500) b.dx *= -1;
-      if (b.y < 80 || b.y > 520) b.dy *= -1;
+      b.noiseOffsetX += 0.005;
+      b.noiseOffsetY += 0.005;
+
+      // Option : téléporter si trop loin de la "France"
+      if (b.x < 100 || b.x > 500 || b.y < 80 || b.y > 520) {
+        b.x = random(150, 450);
+        b.y = random(100, 500);
+        b.noiseOffsetX = random(1000);
+        b.noiseOffsetY = random(2000);
+      }
     }
   }
 
@@ -54,7 +62,6 @@
     stroke(100);
     strokeWeight(2);
     beginShape();
-    // Contour stylisé de la France, simplifié
     vertex(300, 100);
     vertex(350, 120);
     vertex(370, 150);
