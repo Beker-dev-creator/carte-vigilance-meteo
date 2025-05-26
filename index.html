@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Simulation Radar Météo France</title>
+  <title>Radar Météo France</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
@@ -15,7 +15,7 @@
   let blobs = [];
 
   function preload() {
-    // Carte de la France depuis Wikipédia
+    // Carte de la France avec départements
     mapImg = loadImage("https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/France_location_map-Departements-2016.svg/600px-France_location_map-Departements-2016.svg.png");
   }
 
@@ -23,15 +23,15 @@
     createCanvas(600, 600);
     imageMode(CENTER);
 
-    // Génération aléatoire des précipitations
-    for (let i = 0; i < 50; i++) {
+    // Génération des précipitations
+    for (let i = 0; i < 60; i++) {
       blobs.push({
         x: random(150, 450),
         y: random(100, 500),
-        dx: random(-1, 1),
-        dy: random(-1, 1),
+        dx: random(-0.8, 0.8),
+        dy: random(-0.8, 0.8),
         size: random(10, 30),
-        intensity: random(100, 200)
+        intensity: random(0, 100) // 0 à 100%
       });
     }
   }
@@ -42,16 +42,23 @@
 
     noStroke();
     for (let b of blobs) {
-      fill(0, 100, 255, b.intensity); // Couleur bleue semi-transparente
+      fill(getColorFromIntensity(b.intensity));
       ellipse(b.x, b.y, b.size);
 
-      // Mouvement avec rebond sur les bords
       b.x += b.dx;
       b.y += b.dy;
 
       if (b.x < 100 || b.x > 500) b.dx *= -1;
       if (b.y < 80 || b.y > 520) b.dy *= -1;
     }
+  }
+
+  function getColorFromIntensity(intensity) {
+    // Mapping des couleurs selon l’intensité
+    if (intensity < 25) return color(100, 150, 255, 150);   // Bleu clair
+    else if (intensity < 50) return color(0, 200, 0, 170);   // Vert
+    else if (intensity < 75) return color(255, 200, 0, 180); // Jaune
+    else return color(255, 0, 0, 190);                       // Rouge
   }
 </script>
 </body>
