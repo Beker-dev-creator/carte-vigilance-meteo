@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Météo France – Précipitations Fluides</title>
+  <title>Radar Météo France – Flux Sud-Ouest</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
@@ -11,21 +11,17 @@
 </head>
 <body>
 <script>
-  let blobs = [];
+  const PRECIP_CLUSTERS = [];
+  const FLUX_ANGLE = radians(135); // Sud-Ouest
 
   function setup() {
     createCanvas(600, 600);
-    imageMode(CENTER);
-
-    for (let i = 0; i < 60; i++) {
-      blobs.push({
-        x: random(150, 450),
-        y: random(100, 500),
-        size: random(10, 30),
-        intensity: random(0, 100),
-        noiseOffsetX: random(1000),
-        noiseOffsetY: random(2000)
-      });
+    for (let i = 0; i < 5; i++) {
+      PRECIP_CLUSTERS.push(new PrecipitationCluster(
+        random(100, 500), random(100, 500),
+        random(80, 150),
+        FLUX_ANGLE
+      ));
     }
   }
 
@@ -33,27 +29,54 @@
     background(255);
     drawFranceMap();
 
-    noStroke();
-    for (let b of blobs) {
-      fill(getColorFromIntensity(b.intensity));
-      ellipse(b.x, b.y, b.size);
+    for (let cluster of PRECIP_CLUSTERS) {
+      cluster.update();
+      cluster.display();
+    }
+  }
 
-      // Déplacement fluide basé sur du bruit de Perlin
-      let speed = 0.5;
-      b.x += map(noise(b.noiseOffsetX), 0, 1, -speed, speed);
-      b.y += map(noise(b.noiseOffsetY), 0, 1, -speed, speed);
+  class PrecipitationCluster {
+    constructor(x, y, radius, direction) {
+      this.x = x;
+      this.y = y;
+      this.radius = radius;
+      this.direction = direction;
+      this.speed = 0.8;
+      this.drops = [];
 
-      b.noiseOffsetX += 0.005;
-      b.noiseOffsetY += 0.005;
-
-      // Option : téléporter si trop loin de la "France"
-      if (b.x < 100 || b.x > 500 || b.y < 80 || b.y > 520) {
-        b.x = random(150, 450);
-        b.y = random(100, 500);
-        b.noiseOffsetX = random(1000);
-        b.noiseOffsetY = random(2000);
+      // Générer des gouttes internes avec intensité selon la distance au centre
+      for (let i = 0; i < 150; i++) {
+        let angle = random(TWO_PI);
+        let r = sqrt(random(1)) * radius; // densité plus élevée au centre
+        let dx = cos(angle) * r;
+        let dy = sin(angle) * r;
+        let distance = dist(0, 0, dx, dy);
+        let intensity = map(distance, 0, radius, 100, 0); // Plus proche = plus intense
+        this.drops.push({ dx, dy, intensity });
       }
     }
+
+    update() {
+      this.x += cos(this.direction) * this.speed;
+      this.y += sin(this.direction) * this.speed;
+    }
+
+    display() {
+      noStroke();
+      for (let d of this.drops) {
+        let px = this.x + d.dx;
+        let py = this.y + d.dy;
+        fill(getColorFromIntensity(d.intensity));
+        ellipse(px, py, map(d.intensity, 0, 100, 2, 10));
+      }
+    }
+  }
+
+  function getColorFromIntensity(intensity) {
+    if (intensity < 25) return color(100, 150, 255, 120);   // Bleu clair
+    else if (intensity < 50) return color(0, 200, 0, 150);   // Vert
+    else if (intensity < 75) return color(255, 200, 0, 180); // Jaune
+    else return color(255, 0, 0, 200);                       // Rouge
   }
 
   function drawFranceMap() {
@@ -84,13 +107,6 @@
     vertex(260, 120);
     endShape(CLOSE);
     pop();
-  }
-
-  function getColorFromIntensity(intensity) {
-    if (intensity < 25) return color(100, 150, 255, 150);   // Bleu clair
-    else if (intensity < 50) return color(0, 200, 0, 170);   // Vert
-    else if (intensity < 75) return color(255, 200, 0, 180); // Jaune
-    else return color(255, 0, 0, 190);                       // Rouge
   }
 </script>
 </body>
